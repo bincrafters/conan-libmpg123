@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from conans import ConanFile, tools, AutoToolsBuildEnvironment, MSBuild
+from conans.model.version import Version
+from conans.errors import ConanInvalidConfiguration
 import os
 import glob
 
@@ -25,6 +27,11 @@ class LibMPG123Conan(ConanFile):
     @property
     def _is_msvc(self):
         return self.settings.compiler == "Visual Studio"
+
+    def configure(self):
+        compiler_version = Version(self.settings.compiler.version.value)
+        if self.settings.compiler == "Visual Studio" and compiler_version < "14":
+            raise ConanInvalidConfiguration("libmpg123 could not be built by Visual Studio < 14")
 
     def config_options(self):
         if self.settings.os == 'Windows':
@@ -58,8 +65,7 @@ class LibMPG123Conan(ConanFile):
             if self.options.shared:
                 configuration += "_Dll"
             msbuild = MSBuild(self)
-            msbuild.build(project_file="libmpg123.vcxproj",
-                          build_type=configuration)
+            msbuild.build(project_file="libmpg123.vcxproj", build_type=configuration)
 
     def _build_configure(self):
         with tools.chdir(self._source_subfolder):
