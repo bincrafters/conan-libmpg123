@@ -69,12 +69,12 @@ class LibMPG123Conan(ConanFile):
 
     def _build_configure(self):
         with tools.chdir(self._source_subfolder):
-            args = []
+            args = ["--enable-debug=yes" if self.settings.build_type == "Debug" else "--enable-debug=no"]
             if self.options.shared:
                 args.extend(["--disable-static", "--enable-shared"])
             else:
                 args.extend(["--enable-static", "--disable-shared"])
-            env_build = AutoToolsBuildEnvironment(self.settings)
+            env_build = AutoToolsBuildEnvironment(self)
             env_build.configure(args=args)
             env_build.make()
             env_build.install()
