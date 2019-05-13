@@ -74,6 +74,8 @@ class LibMPG123Conan(ConanFile):
                 args.extend(["--disable-static", "--enable-shared"])
             else:
                 args.extend(["--enable-static", "--disable-shared"])
+            if self.settings.os == "Android":
+                args.extend(['--disable-buffer', '--with-cpu=generic_fpu'])
             env_build = AutoToolsBuildEnvironment(self)
             env_build.configure(args=args)
             env_build.make()
