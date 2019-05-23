@@ -62,6 +62,9 @@ class LibMPG123Conan(ConanFile):
 
         with tools.chdir(os.path.join(self._source_subfolder, "ports", "MSVC++", "2015", "win32", "libmpg123")):
             configuration = str(self.settings.build_type) + "_x86"
+            tools.replace_in_file("libmpg123.vcxproj",
+                                  "<WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>",
+                                  "<WindowsTargetPlatformVersion>10</WindowsTargetPlatformVersion>")
             if self.options.shared:
                 configuration += "_Dll"
             msbuild = MSBuild(self)
