@@ -5,6 +5,7 @@ from conans.tools import Version
 from conans.errors import ConanInvalidConfiguration
 import os
 import glob
+import six
 
 
 class LibMPG123Conan(ConanFile):
@@ -23,6 +24,46 @@ class LibMPG123Conan(ConanFile):
     default_options = {"shared": False, "fPIC": True}
     _source_subfolder = "source_subfolder"
     _build_subfolder = "build_subfolder"
+
+    # copied from conan, need to make expose it
+    def _system_registry_key(self, key, subkey, query):
+        from six.moves import winreg  # @UnresolvedImport
+        try:
+            hkey = winreg.OpenKey(key, subkey)
+        except (OSError, WindowsError):  # Raised by OpenKey/Ex if the function fails (py3, py2)
+            return None
+        else:
+            try:
+                value, _ = winreg.QueryValueEx(hkey, query)
+                return value
+            except EnvironmentError:
+                return None
+            finally:
+                winreg.CloseKey(hkey)
+
+    def _find_windows_10_sdk(self):
+        """finds valid Windows 10 SDK version which can be passed to vcvarsall.bat (vcvars_command)"""
+        # uses the same method as VCVarsQueryRegistry.bat
+        from six.moves import winreg  # @UnresolvedImport
+        hives = [
+            (winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Wow6432Node'),
+            (winreg.HKEY_CURRENT_USER, r'SOFTWARE\Wow6432Node'),
+            (winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE'),
+            (winreg.HKEY_CURRENT_USER, r'SOFTWARE')
+        ]
+        for key, subkey in hives:
+            subkey = r'%s\Microsoft\Microsoft SDKs\Windows\v10.0' % subkey
+            installation_folder = self._system_registry_key(key, subkey, 'InstallationFolder')
+            if installation_folder:
+                if os.path.isdir(installation_folder):
+                    include_dir = os.path.join(installation_folder, 'include')
+                    for sdk_version in os.listdir(include_dir):
+                        if (os.path.isdir(os.path.join(include_dir, sdk_version))
+                                and sdk_version.startswith('10.')):
+                            windows_h = os.path.join(include_dir, sdk_version, 'um', 'Windows.h')
+                            if os.path.isfile(windows_h):
+                                return sdk_version
+        return None
 
     @property
     def _is_msvc(self):
@@ -64,9 +105,12 @@ class LibMPG123Conan(ConanFile):
             configuration = str(self.settings.build_type) + "_x86"
             compiler_version = Version(self.settings.compiler.version.value)
             if compiler_version > "14":
+                win10sdk = self._find_windows_10_sdk()
+                if not win10sdk:
+                    raise Exception("Windows 10 SDK wasn't found")
                 tools.replace_in_file("libmpg123.vcxproj",
                                       "<WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>",
-                                      "<WindowsTargetPlatformVersion>10</WindowsTargetPlatformVersion>")
+                                      "<WindowsTargetPlatformVersion>%s</WindowsTargetPlatformVersion>" % win10sdk)
             if self.options.shared:
                 configuration += "_Dll"
             msbuild = MSBuild(self)
