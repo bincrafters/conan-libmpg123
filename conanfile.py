@@ -3,6 +3,7 @@
 from conans import ConanFile, tools, AutoToolsBuildEnvironment, MSBuild
 from conans.tools import Version
 from conans.errors import ConanInvalidConfiguration
+from conans.errors import ConanInvalidConfiguration
 import os
 import glob
 import six
@@ -107,7 +108,7 @@ class LibMPG123Conan(ConanFile):
             if compiler_version > "14":
                 win10sdk = self._find_windows_10_sdk()
                 if not win10sdk:
-                    raise Exception("Windows 10 SDK wasn't found")
+                    raise ConanInvalidConfiguration("Windows 10 SDK wasn't found")
                 tools.replace_in_file("libmpg123.vcxproj",
                                       "<WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>",
                                       "<WindowsTargetPlatformVersion>%s</WindowsTargetPlatformVersion>" % win10sdk)
