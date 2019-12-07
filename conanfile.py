@@ -79,7 +79,7 @@ class LibMPG123Conan(ConanFile):
     def build_requirements(self):
         if tools.os_info.is_windows:
             if "CONAN_BASH_PATH" not in os.environ:
-                self.build_requires("msys2/20161025")
+                self.build_requires("msys2/20190524")
         if not tools.which("yasm"):
             self.build_requires("yasm/1.3.0")
 
