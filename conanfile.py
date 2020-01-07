@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
-
 from conans import ConanFile, tools, AutoToolsBuildEnvironment, MSBuild
 from conans.tools import Version
+from conans.errors import ConanInvalidConfiguration
 from conans.errors import ConanInvalidConfiguration
 import os
 import glob
@@ -15,7 +14,6 @@ class LibMPG123Conan(ConanFile):
     topics = ("conan", "mpg123", "libmpg123", "mpeg", "audio", "decoding", "multimedia")
     url = "https://github.com/bincrafters/conan-libmpg123"
     homepage = "https://www.mpg123.de/"
-    author = "Bincrafters <bincrafters@gmail.com>"
     license = "LGPL-2.0-only"
     exports = ["LICENSE.md"]
     exports_sources = ["patches/*.patch"]
@@ -81,9 +79,9 @@ class LibMPG123Conan(ConanFile):
     def build_requirements(self):
         if tools.os_info.is_windows:
             if "CONAN_BASH_PATH" not in os.environ:
-                self.build_requires("msys2_installer/latest@bincrafters/stable")
+                self.build_requires("msys2/20190524")
         if not tools.which("yasm"):
-            self.build_requires("yasm_installer/1.3.0@bincrafters/stable")
+            self.build_requires("yasm/1.3.0")
 
     def source(self):
         source_url = "https://netcologne.dl.sourceforge.net/project/mpg123/mpg123/{v}/mpg123-{v}.tar.bz2".format(v=self.version)
@@ -107,7 +105,7 @@ class LibMPG123Conan(ConanFile):
             if compiler_version > "14":
                 win10sdk = self._find_windows_10_sdk()
                 if not win10sdk:
-                    raise Exception("Windows 10 SDK wasn't found")
+                    raise ConanInvalidConfiguration("Windows 10 SDK wasn't found")
                 tools.replace_in_file("libmpg123.vcxproj",
                                       "<WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>",
                                       "<WindowsTargetPlatformVersion>%s</WindowsTargetPlatformVersion>" % win10sdk)
