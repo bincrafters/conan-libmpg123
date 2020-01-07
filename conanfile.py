@@ -1,7 +1,6 @@
 from conans import ConanFile, tools, AutoToolsBuildEnvironment, MSBuild
 from conans.tools import Version
 from conans.errors import ConanInvalidConfiguration
-from conans.errors import ConanInvalidConfiguration
 import os
 import glob
 import six
@@ -15,7 +14,6 @@ class LibMPG123Conan(ConanFile):
     url = "https://github.com/bincrafters/conan-libmpg123"
     homepage = "https://www.mpg123.de/"
     license = "LGPL-2.0-only"
-    exports = ["LICENSE.md"]
     exports_sources = ["patches/*.patch"]
     settings = "os", "arch", "compiler", "build_type"
     options = {"shared": [True, False], "fPIC": [True, False]}
