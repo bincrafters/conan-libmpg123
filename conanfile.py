@@ -8,13 +8,12 @@ import six
 
 class LibMPG123Conan(ConanFile):
     name = "libmpg123"
-    version = "1.25.10"
-    description = "mpg123  is the fast and Free (LGPL license) real time MPEG Audio Layer 1, 2 and 3 decoding library and console player"
+    version = "1.25.13"
+    description = "mpg123 is the fast and Free (LGPL license) real time MPEG Audio Layer 1, 2 and 3 decoding library and console player"
     topics = ("conan", "mpg123", "libmpg123", "mpeg", "audio", "decoding", "multimedia")
     url = "https://github.com/bincrafters/conan-libmpg123"
-    homepage = "https://www.mpg123.de/"
+    homepage = "https://www.mpg123.de"
     license = "LGPL-2.0-only"
-    exports_sources = ["patches/*.patch"]
     settings = "os", "arch", "compiler", "build_type"
     options = {"shared": [True, False], "fPIC": [True, False]}
     default_options = {"shared": False, "fPIC": True}
@@ -82,9 +81,9 @@ class LibMPG123Conan(ConanFile):
             self.build_requires("yasm/1.3.0")
 
     def source(self):
-        source_url = "https://netcologne.dl.sourceforge.net/project/mpg123/mpg123/{v}/mpg123-{v}.tar.bz2".format(v=self.version)
-        tools.get(source_url, sha256="6c1337aee2e4bf993299851c70b7db11faec785303cfca3a5c3eb5f329ba7023")
-        os.rename("mpg123-" + self.version, self._source_subfolder)
+        tools.get(**self.conan_data["sources"][self.version])
+        extracted_dir = "mpg123-" + self.version
+        os.rename(extracted_dir, self._source_subfolder)
 
     def build(self):
         if self._is_msvc:
@@ -93,10 +92,6 @@ class LibMPG123Conan(ConanFile):
             self._build_configure()
 
     def _build_msvc(self):
-        for filename in glob.glob("patches/*.patch"):
-            self.output.info('applying patch "%s"' % filename)
-            tools.patch(base_path=self._source_subfolder, patch_file=filename)
-
         with tools.chdir(os.path.join(self._source_subfolder, "ports", "MSVC++", "2015", "win32", "libmpg123")):
             configuration = str(self.settings.build_type) + "_x86"
             compiler_version = Version(self.settings.compiler.version.value)
