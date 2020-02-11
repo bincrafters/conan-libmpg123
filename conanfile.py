@@ -85,3 +85,5 @@ class LibMPG123Conan(ConanFile):
             self.cpp_info.defines.append("LINK_MPG123_DLL")
         if self.settings.os == "Windows":
             self.cpp_info.system_libs = ["shlwapi"]
+        elif self.settings.os == "Linux":
+            self.cpp_info.system_libs.append("dl")
