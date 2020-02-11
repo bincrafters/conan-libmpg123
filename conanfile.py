@@ -64,11 +64,11 @@ class LibMPG123Conan(ConanFile):
         self.copy(pattern="COPYING", dst="licenses", src=self._source_subfolder)
         cmake = self._configure_cmake()
         cmake.install()
+        src_folder = os.path.join(self._source_subfolder, "src", "libmpg123")
+        self.copy(pattern="*fmt123.h", dst="include", src=src_folder)
         # if self._is_msvc:
         if self.settings.os == "Windows":
-            src_folder = os.path.join(self._source_subfolder, "src", "libmpg123")
             self.copy(pattern="*mpg123.h.in", dst="include", src=src_folder)
-            self.copy(pattern="*fmt123.h", dst="include", src=src_folder)
             self.copy(pattern="*config.h", dst="include", src=os.path.join(self._source_subfolder, "ports", "MSVC++"))
             self.copy(pattern="*mpg123.h", dst="include", src=os.path.join(self._source_subfolder, "ports", "MSVC++"))
             # self.copy(pattern="*.dll", dst="bin", keep_path=False)
