@@ -86,4 +86,4 @@ class LibMPG123Conan(ConanFile):
         if self.settings.os == "Windows":
             self.cpp_info.system_libs = ["shlwapi"]
         elif self.settings.os == "Linux":
-            self.cpp_info.system_libs.append("dl")
+            self.cpp_info.system_libs.append("dl", "m")
