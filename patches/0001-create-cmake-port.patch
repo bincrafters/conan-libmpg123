@@ -1,0 +1,953 @@
+diff --git a/ports/cmake/CMakeLists.txt b/ports/cmake/CMakeLists.txt
+new file mode 100644
+index 0000000..6d8853c
+--- /dev/null
++++ b/ports/cmake/CMakeLists.txt
+@@ -0,0 +1,46 @@
++cmake_minimum_required(VERSION 3.12)
++
++project(mpg123 VERSION 1.26.0 LANGUAGES C ASM)
++
++include(cmake/search_libs.cmake)
++include(CMakePackageConfigHelpers)
++include(GNUInstallDirs)
++
++add_subdirectory("src")
++
++install(
++    EXPORT targets
++    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
++    NAMESPACE MPG123::)
++
++configure_package_config_file(
++    mpg123-config.cmake.in mpg123-config.cmake
++    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
++write_basic_package_version_file(
++    mpg123-config-version.cmake COMPATIBILITY AnyNewerVersion)
++
++install(
++    FILES
++        "${CMAKE_CURRENT_BINARY_DIR}/mpg123-config.cmake"
++        "${CMAKE_CURRENT_BINARY_DIR}/mpg123-config-version.cmake"
++    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
++
++set(prefix "${CMAKE_INSTALL_PREFIX}")
++set(exec_prefix "${CMAKE_INSTALL_PREFIX}")
++set(libdir "${CMAKE_INSTALL_FULL_LIBDIR}")
++set(includedir "${CMAKE_INSTALL_FULL_INCLUDEDIR}")
++configure_file("${CMAKE_CURRENT_SOURCE_DIR}/../../libmpg123.pc.in" libmpg123.pc @ONLY)
++configure_file("${CMAKE_CURRENT_SOURCE_DIR}/../../libout123.pc.in" libout123.pc @ONLY)
++configure_file("${CMAKE_CURRENT_SOURCE_DIR}/../../libsyn123.pc.in" libsyn123.pc @ONLY)
++
++install(
++    FILES
++        "${CMAKE_CURRENT_BINARY_DIR}/libmpg123.pc"
++        "${CMAKE_CURRENT_BINARY_DIR}/libout123.pc"
++        "${CMAKE_CURRENT_BINARY_DIR}/libsyn123.pc"
++    DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
++install(
++    FILES
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../man1/mpg123.1"
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../man1/out123.1"
++    DESTINATION "${CMAKE_INSTALL_MANDIR}")
+diff --git a/ports/cmake/cmake/search_libs.cmake b/ports/cmake/cmake/search_libs.cmake
+new file mode 100644
+index 0000000..82da54e
+--- /dev/null
++++ b/ports/cmake/cmake/search_libs.cmake
+@@ -0,0 +1,14 @@
++function(search_libs function output_var)
++    if(${output_var})
++        return()
++    endif()
++    set(LIBS "" ${ARGN})
++    foreach(CMAKE_REQUIRED_LIBRARIES IN LISTS ${LIBS})
++        message(STATUS "######## ${CMAKE_REQUIRED_LIBRARIES} ${HAVE_${function}}")
++        check_function_exists(${function} HAVE_${function})
++        if(HAVE_${function})
++            set(${output_var} ${CMAKE_REQUIRED_LIBRARIES} CACHE INTERNAL "")
++            return()
++        endif()
++    endforeach()
++endfunction()
+diff --git a/ports/cmake/mpg123-config.cmake.in b/ports/cmake/mpg123-config.cmake.in
+new file mode 100644
+index 0000000..89c6e7d
+--- /dev/null
++++ b/ports/cmake/mpg123-config.cmake.in
+@@ -0,0 +1,3 @@
++@PACKAGE_INIT@
++
++include("${CMAKE_CURRENT_LIST_DIR}/targets.cmake")
+diff --git a/ports/cmake/src/CMakeLists.txt b/ports/cmake/src/CMakeLists.txt
+new file mode 100644
+index 0000000..3005f31
+--- /dev/null
++++ b/ports/cmake/src/CMakeLists.txt
+@@ -0,0 +1,351 @@
++cmake_minimum_required(VERSION 3.12)
++
++include(CheckCSourceCompiles)
++include(CheckFunctionExists)
++include(CheckIncludeFile)
++include(CheckSymbolExists)
++include(CMakeDependentOption)
++include(TestBigEndian)
++
++check_include_file("arpa/inet.h" HAVE_ARPA_INET_H)
++check_include_file("dirent.h" HAVE_DIRENT_H)
++check_include_file("dlfcn.h" HAVE_DLFCN_H)
++check_include_file("inttypes.h" HAVE_INTTYPES_H)
++check_include_file("langinfo.h" HAVE_LANGINFO_H)
++check_include_file("limits.h" HAVE_LIMITS_H)
++check_include_file("locale.h" HAVE_LOCALE_H)
++check_include_file("netdb.h" HAVE_NETDB_H)
++check_include_file("netinet/in.h" HAVE_NETINET_IN_H)
++check_include_file("sched.h" HAVE_SCHED_H)
++check_include_file("signal.h" HAVE_SIGNAL_H)
++check_include_file("stdio.h" HAVE_STDIO_H)
++check_include_file("stdint.h" HAVE_STDINT_H)
++check_include_file("stdlib.h" HAVE_STDLIB_H)
++check_include_file("string.h" HAVE_STRING_H)
++check_include_file("sys/ioctl.h" HAVE_SYS_IOCTL_H)
++check_include_file("sys/ipc.h" HAVE_SYS_IPC_H)
++check_include_file("sys/param.h" HAVE_SYS_PARAM_H)
++check_include_file("sys/resource.h" HAVE_SYS_RESOURCE_H)
++check_include_file("sys/select.h" HAVE_SYS_SELECT_H)
++check_include_file("sys/shm.h" HAVE_SYS_SHM_H)
++check_include_file("sys/signal.h" HAVE_SYS_SIGNAL_H)
++check_include_file("sys/socket.h" HAVE_SYS_SOCKET_H)
++check_include_file("sys/stat.h" HAVE_SYS_STAT_H)
++check_include_file("sys/time.h" HAVE_SYS_TIME_H)
++check_include_file("sys/types.h" HAVE_SYS_TYPES_H)
++check_include_file("sys/wait.h" HAVE_SYS_WAIT_H)
++check_include_file("termios.h" HAVE_TERMIOS)
++check_include_file("unistd.h" HAVE_UNISTD_H)
++check_include_file("windows.h" HAVE_WINDOWS_H)
++
++check_symbol_exists(strerror "string.h" HAVE_STRERROR)
++
++set(CMAKE_REQUIRED_LIBRARIES m)
++check_function_exists(sin HAVE_M)
++
++set(CMAKE_REQUIRED_LIBRARIES)
++check_function_exists(atoll HAVE_ATOLL)
++check_function_exists(getaddrinfo HAVE_IPV6)
++check_function_exists(mkfifo HAVE_MKFIFO)
++check_function_exists(mmap HAVE_MMAP)
++check_function_exists(nl_langinfo HAVE_NL_LANGINFO)
++check_function_exists(random HAVE_RANDOM)
++check_function_exists(setlocale HAVE_SETLOCALE)
++check_function_exists(setpriority HAVE_SETPRIORITY)
++check_function_exists(shmget HAVE_SHMGET)
++check_function_exists(shmat HAVE_SHMAT)
++check_function_exists(shmdt HAVE_SHMDT)
++check_function_exists(shmctl HAVE_SHMCTL)
++
++search_libs(gethostbyname GETHOSTBYNAME_LIB nsl socket network)
++search_libs(socket SOCKET_LIB socket)
++
++test_big_endian(WORDS_BIGENDIAN)
++
++check_c_source_compiles(
++    "int main() { __asm__(\".balign 4\"); return 0; }"
++    ASMALIGN_BALIGN)
++check_c_source_compiles(
++    "int main() { __asm__(\".align 3\"); return 0; }"
++    ASMALIGN_EXP)
++if(NOT ASMALIGN_EXP)
++    set(ASMALIGN_BYTE ON)
++endif()
++
++check_c_source_compiles(
++    "int main() { __attribute__((aligned(16))) float var; return 0; }"
++    CCALIGN)
++
++check_c_source_compiles("
++    #include <sys/types.h>
++     /* Check that off_t can represent 2**63 - 1 correctly.
++        We can't simply define LARGE_OFF_T to be 9223372036854775807,
++        since some C++ compilers masquerading as C compilers
++        incorrectly reject 9223372036854775807.  */
++    #define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
++    int off_t_is_large[
++        (LARGE_OFF_T % 2147483629 == 721 && LARGE_OFF_T % 2147483647 == 1) ? 1 : -1];
++    int main() { return 0; }"
++    LFS_INSENSITIVE)
++if(NOT LFS_INSENSITIVE)
++    check_c_source_compiles("
++        #define _FILE_OFFSET_BITS 64
++        #include <sys/types.h>
++         /* Check that off_t can represent 2**63 - 1 correctly.
++            We can't simply define LARGE_OFF_T to be 9223372036854775807,
++            since some C++ compilers masquerading as C compilers
++            incorrectly reject 9223372036854775807.  */
++        #define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
++        int off_t_is_large[
++            (LARGE_OFF_T % 2147483629 == 721 && LARGE_OFF_T % 2147483647 == 1) ? 1 : -1];
++        int main() { return 0; }"
++        LFS_SENSITIVE)
++endif()
++check_type_size(long SIZEOF_LONG)
++check_type_size(off_t SIZEOF_OFF_T)
++if(LFS_SENSITIVE)
++    set(LFS_ALIAS_TYPE long)
++    math(EXPR LFS_ALIAS_BITS "${SIZEOF_LONG} * 8")
++else()
++    set(LFS_ALIAS_TYPE off_t)
++    math(EXPR LFS_ALIAS_BITS "${SIZEOF_OFF_T} * 8")
++endif()
++
++if(WIN32 AND HAVE_WINDOWS_H)
++    check_c_source_compiles("
++        #include <windows.h>
++
++        int main() {
++          LoadLibraryW(0);
++          GetProcAddress(0, 0);
++          FreeLibrary(0);
++        }"
++        HAVE_WIN_DL)
++else()
++    set(CMAKE_REQUIRED_LIBRARIES dl)
++    check_symbol_exists(dlopen "dlfcn.h" HAVE_UNIX_DL)
++endif()
++
++set(DYNAMIC_BUILD ${BUILD_SHARED_LIBS})
++if(MSVC)
++    set(STDERR_FILENO "(_fileno(stderr))")
++    set(STDIN_FILENO "(_fileno(stdin))")
++    set(STDOUT_FILENO "(_fileno(stdout))")
++endif()
++set(HAVE_WIN32_FIFO ${WIN32})
++set(WANT_WIN32_UNICODE ${WIN32})
++set(WITH_SEEKTABLE 1000)
++
++if(NOT WITH_SEEKTABLE EQUAL 0)
++    set(FRAME_INDEX 1)
++endif()
++
++if(WIN32)
++    set(HAVE_MKFIFO ON)
++endif()
++
++if(HAVE_NETDB_H AND HAVE_SYS_PARAM_H AND HAVE_SYS_SOCKET_H AND HAVE_NETINET_IN_H AND HAVE_ARPA_INET_H)
++    set(HAVE_NETWORK ON)
++endif()
++
++if(NO_MESSAGES)
++    set(NO_WARNING ON)
++    set(NO_ERRORMSG ON)
++    set(NO_ERETURN ON)
++endif()
++
++cmake_host_system_information(RESULT HAVE_FPU QUERY HAS_FPU)
++
++if(NOT HAVE_FPU)
++    set(NO_SYNTH32 ON)
++endif()
++
++# Modules
++
++if(CHECK_MODULES)
++    list(FIND CHECK_MODULES alsa ALSA_REQUIRED)
++    list(FIND CHECK_MODULES coreaudio COREAUDIO_REQUIRED)
++    list(FIND CHECK_MODULES pulse PULSE_REQUIRED)
++    list(FIND CHECK_MODULES win32 WIN32_REQUIRED)
++    set(MODULE_NOT_FOUND_MESSAGE "module required but couldn't be found")
++endif()
++
++if(NOT CHECK_MODULES OR NOT ALSA_REQUIRED EQUAL -1)
++    find_package(ALSA)
++    if(TARGET ALSA::ALSA)
++        list(APPEND OUTPUT_MODULES alsa)
++    elseif(CHECK_MODULES AND NOT ALSA_REQUIRED EQUAL -1)
++        message(FATAL_ERROR "alsa ${MODULE_NOT_FOUND_MESSAGE}")
++    endif()
++endif()
++
++if(NOT CHECK_MODULES OR NOT COREAUDIO_REQUIRED EQUAL -1)
++    if(APPLE)
++        find_library(AUDIO_TOOLBOX AudioToolbox)
++        list(APPEND OUTPUT_MODULES coreaudio)
++    elseif(CHECK_MODULES AND NOT COREAUDIO_REQUIRED EQUAL -1)
++        message(FATAL_ERROR "coreaudio ${MODULE_NOT_FOUND_MESSAGE}")
++    endif()
++endif()
++
++find_package(PkgConfig)
++if(PKG_CONFIG_FOUND)
++    if(NOT CHECK_MODULES OR NOT PULSE_REQUIRED EQUAL -1)
++        pkg_search_module(PULSE libpulse-simple)
++        if(PULSE_FOUND)
++            list(APPEND OUTPUT_MODULES pulse)
++        elseif(CHECK_MODULES AND NOT PULSE_REQUIRED EQUAL -1)
++            message(FATAL_ERROR "pulse ${MODULE_NOT_FOUND_MESSAGE}")
++        endif()
++    endif()
++endif()
++
++if(NOT CHECK_MODULES OR NOT WIN32_REQUIRED EQUAL -1)
++    if(HAVE_WINDOWS_H)
++        list(APPEND OUTPUT_MODULES win32)
++    elseif(CHECK_MODULES AND NOT WIN32_REQUIRED EQUAL -1)
++        message(FATAL_ERROR "win32 ${MODULE_NOT_FOUND_MESSAGE}")
++    endif()
++endif()
++
++if(CHECK_MODULES)
++    list(REMOVE_AT CHECK_MODULES
++        ALSA_REQUIRED
++        COREAUDIO_REQUIRED
++        PULSE_REQUIRED
++        WIN32_REQUIRED)
++    list(LENGTH CHECK_MODULES CHECK_MODULES_LENGTH)
++    if(NOT CHECK_MODULES_LENGTH EQUAL 0)
++        message(FATAL_ERROR "Dunno how to find modules: ${CHECK_MODULES}")
++    endif()
++endif()
++
++if(NOT OUTPUT_MODULES)
++    set(DEFAULT_OUTPUT_MODULE dummy)
++    set(DEFAULT_OUTPUT_MODULES ${DEFAULT_OUTPUT_MODULE})
++else()
++    list(GET OUTPUT_MODULES 0 _DEFAULT_OUTPUT_MODULE)
++    set(DEFAULT_OUTPUT_MODULE ${_DEFAULT_OUTPUT_MODULE} CACHE STRING "Default output module")
++    if(BUILD_SHARED_LIBS)
++        string(REPLACE ";" "," DEFAULT_OUTPUT_MODULES "${OUTPUT_MODULES}")
++    else()
++        set(DEFAULT_OUTPUT_MODULES ${DEFAULT_OUTPUT_MODULE})
++    endif()
++    set_property(CACHE DEFAULT_OUTPUT_MODULE PROPERTY STRINGS ${OUTPUT_MODULES})
++endif()
++
++option(ACCURATE_ROUNDING "use rounding instead of fast truncation for integer output, where possible" ON)
++cmake_dependent_option(FIFO "FIFO support for control interface" ON "HAVE_MKFIFO" OFF)
++option(GAPLESS "enable gapless" ON)
++option(IEEE_FLOAT "use special hackery relying on IEEE 754 floating point storage format (to accurately round to 16 bit integer at bit more efficiently in generic decoder, enabled by default, disable in case you have a very special computer)" ON)
++cmake_dependent_option(IPV6 "IPv6 support (actually any protocol your libc does with getaddrinfo)" ON "HAVE_IPV6" OFF)
++if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
++    option(NAGGING "turn on GCC's pedantic nagging with error on warnings" OFF)
++    if(NAGGING)
++        set(CMAKE_C_STANDARD 99)
++        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -pedantic")
++    endif()
++endif()
++cmake_dependent_option(NETWORK "network support (http streams / webradio)" ON "HAVE_NETWORK" OFF)
++option(NEWOLD_WRITE_SAMPLE "enable new/old WRITE_SAMPLE macro for non-accurate 16 bit output, faster on certain CPUs (default on on x86-32)" OFF)
++cmake_dependent_option(NO_BUFFER "enable audio buffer code (default uses system whitelist... proper checks later)" OFF "HAVE_MMAP OR HAVE_SYS_IPC_H AND HAVE_SYS_SHM_H AND HAVE_SHMGET AND HAVE_SHMAT AND HAVE_SHMDT AND HAVE_SHMCTL" ON)
++option(NO_DOWNSAMPLE "no downsampled decoding" OFF)
++option(NO_EQUALIZER "no equalizer support" OFF)
++option(NO_FEEDER "no feeder decoding, no buffered readers" OFF)
++if(CYGWIN)
++    option(NO_LFS_ALIAS "disable alias wrappers for largefile bitness (mpg123_seek_32 or mpg123_seek_64 in addition to mpg123_seek, or the other way around; It is a mess, do not play with this!)" ON)
++else()
++    option(NO_LFS_ALIAS "disable alias wrappers for largefile bitness (mpg123_seek_32 or mpg123_seek_64 in addition to mpg123_seek, or the other way around; It is a mess, do not play with this!)" OFF)
++endif()
++option(NO_ICY "ICY metainfo parsing/conversion" OFF)
++option(NO_LAYER1 "no layer I decoding" OFF)
++option(NO_LAYER2 "no layer II decoding" OFF)
++option(NO_LAYER3 "no layer III decoding" OFF)
++option(NO_MESSAGES "no error/warning messages on the console" OFF)
++option(NO_MOREINFO "no extra information for frame analyzers" OFF)
++option(NO_NTOM "no flexible resampling" OFF)
++option(NO_16BIT "no 16 bit integer output" OFF)
++option(NO_32BIT "no 32 bit integer output (also 24 bit)" OFF)
++cmake_dependent_option(NO_8BIT "no 8 bit integer output" OFF "NOT NO_16BIT" ON)
++option(NO_REAL "no real (floating point) output" OFF)
++option(NO_STRING "no string API (this will disable ID3v2; main mpg123 won't build anymore)" OFF)
++cmake_dependent_option(NO_ID3V2 "no ID3v2 parsing" OFF "NOT NO_STRING" ON)
++option(SYN123_NO_CASES "include special cases for likely parameter values (channel count, encoding sizes in libsyn123 routines) in the hope of better optimization at the expense of some code bloat (default enabled)" OFF)
++cmake_dependent_option(USE_MODULES "dynamically loadable output modules" ON "BUILD_SHARED_LIBS;HAVE_WIN_DL OR HAVE_UNIX_DL" OFF)
++option(USE_NEW_HUFFTABLE "use new huffman decoding scheme by Taihei (faster on modern CPUs at least, so on by default)" ON)
++
++configure_file(config.cmake.h.in config.h)
++
++include_directories(
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/"
++    "${CMAKE_CURRENT_BINARY_DIR}"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/compat"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/libmpg123")
++
++add_compile_definitions(
++    $<$<BOOL:${WIN32}>:_CRT_SECURE_NO_WARNINGS>
++    $<$<BOOL:${NO_BUFFER}>:NOXFERMEM>
++    $<$<BOOL:${NEWOLD_WRITE_SAMPLE}>:NEWOLD_WRITE_SAMPLE>)
++
++add_compile_options(
++    $<$<BOOL:${MSVC}>:/wd4996>)
++
++add_subdirectory("compat")
++add_subdirectory("libmpg123")
++add_subdirectory("libout123")
++add_subdirectory("libsyn123")
++
++if(UNIX)
++    add_subdirectory("tests")
++
++    add_executable(${PROJECT_NAME}
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/audio.c"
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/common.c"
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/sysutil.c"
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/control_generic.c"
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/equalizer.c"
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/getlopt.c"
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/httpget.c"
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/resolver.c"
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/genre.c"
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/mpg123.c"
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/metaprint.c"
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/local.c"
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/playlist.c"
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/streamdump.c"
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/term.c")
++    target_link_libraries(${PROJECT_NAME} PRIVATE
++        compat
++        lib${PROJECT_NAME}
++        libout123
++        ${GETHOSTBYNAME_LIB}
++        ${SOCKET_LIB}
++        $<$<BOOL:${HAVE_M}>:m>)
++
++    add_executable(out123
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/sysutil.c"
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/getlopt.c"
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/out123.c")
++    target_link_libraries(out123 PRIVATE
++        lib${PROJECT_NAME}
++        libout123
++        libsyn123)
++
++    add_executable(${PROJECT_NAME}-id3dump
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/mpg123-id3dump.c"
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/getlopt.c")
++    target_link_libraries(${PROJECT_NAME}-id3dump  PRIVATE
++        lib${PROJECT_NAME})
++
++    add_executable(${PROJECT_NAME}-strip
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/mpg123-strip.c"
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/getlopt.c")
++    target_link_libraries(${PROJECT_NAME}-strip  PRIVATE
++        lib${PROJECT_NAME})
++
++    install(TARGETS ${PROJECT_NAME} out123 ${PROJECT_NAME}-id3dump ${PROJECT_NAME}-strip
++        EXPORT targets
++        ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}/"
++        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}/"
++        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}/")
++endif()
+diff --git a/ports/cmake/src/compat/CMakeLists.txt b/ports/cmake/src/compat/CMakeLists.txt
+new file mode 100644
+index 0000000..f887f43
+--- /dev/null
++++ b/ports/cmake/src/compat/CMakeLists.txt
+@@ -0,0 +1,13 @@
++set(TARGET compat)
++add_library(${TARGET} OBJECT
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/compat/compat.c"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/compat/compat_str.c")
++set_target_properties(${TARGET} PROPERTIES POSITION_INDEPENDENT_CODE ON)
++
++add_library(${TARGET}_dl OBJECT
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/compat/compat_dl.c")
++set_target_properties(${TARGET}_dl PROPERTIES POSITION_INDEPENDENT_CODE ON)
++
++add_library(${TARGET}_str OBJECT
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/compat/compat_str.c")
++set_target_properties(${TARGET}_dl PROPERTIES POSITION_INDEPENDENT_CODE ON)
+diff --git a/ports/cmake/src/config.cmake.h.in b/ports/cmake/src/config.cmake.h.in
+new file mode 100644
+index 0000000..c9f4414
+--- /dev/null
++++ b/ports/cmake/src/config.cmake.h.in
+@@ -0,0 +1,161 @@
++// Define to use proper rounding.
++#cmakedefine ACCURATE_ROUNDING 1
++
++// Define if .balign is present.
++#cmakedefine ASMALIGN_BALIGN 1
++
++// Define if .align takes 3 for alignment of 2^3=8 bytes instead of 8.
++#cmakedefine ASMALIGN_EXP 1
++
++// Define if .align just takes byte count.
++#cmakedefine ASMALIGN_BYTE 1
++
++// Define if __attribute__((aligned(16))) shall be used
++#cmakedefine CCALIGN 1
++
++#define DEFAULT_OUTPUT_MODULE "@DEFAULT_OUTPUT_MODULES@"
++
++#cmakedefine DEBUG 1
++#cmakedefine DYNAMIC_BUILD 1
++
++// Define if FIFO support is enabled.
++#cmakedefine FIFO 1
++
++// Define if frame index should be used.
++#cmakedefine FRAME_INDEX 1
++
++#cmakedefine GAPLESS 1
++#cmakedefine HAVE_ATOLL 1
++#cmakedefine HAVE_DIRENT_H 1
++#cmakedefine HAVE_DLFCN_H 1
++#cmakedefine HAVE_INTTYPES_H 1
++#cmakedefine HAVE_LANGINFO_H 1
++#cmakedefine HAVE_LIMITS_H 1
++#cmakedefine HAVE_LOCALE_H 1
++#cmakedefine HAVE_NL_LANGINFO 1
++#cmakedefine HAVE_RANDOM 1
++#cmakedefine HAVE_SCHED_H 1
++#cmakedefine HAVE_SETLOCALE 1
++#cmakedefine HAVE_SETPRIORITY 1
++#cmakedefine HAVE_SIGNAL_H 1
++#cmakedefine HAVE_STDIO_H 1
++#cmakedefine HAVE_STDINT_H 1
++#cmakedefine HAVE_STDLIB_H 1
++#cmakedefine HAVE_STRERROR 1
++#cmakedefine HAVE_STRING_H 1
++#cmakedefine HAVE_SYS_IOCTL_H 1
++#cmakedefine HAVE_SYS_RESOURCE_H 1
++#cmakedefine HAVE_SYS_SELECT_H 1
++#cmakedefine HAVE_SYS_SIGNAL_H 1
++#cmakedefine HAVE_SYS_STAT_H 1
++#cmakedefine HAVE_SYS_TIME_H 1
++#cmakedefine HAVE_SYS_TYPES_H 1
++#cmakedefine HAVE_SYS_WAIT_H 1
++
++// Define this if you have the POSIX termios library
++#cmakedefine HAVE_TERMIOS 1
++
++#cmakedefine HAVE_UNISTD_H 1
++#cmakedefine HAVE_WINDOWS_H 1
++
++// Define to indicate that float storage follows IEEE754.
++#cmakedefine IEEE_FLOAT 1
++
++#define INDEX_SIZE @WITH_SEEKTABLE@
++
++// Define if IPV6 support is enabled.
++#cmakedefine IPV6 1
++
++#define LFS_ALIAS_BITS @LFS_ALIAS_BITS@
++#define LT_MODULE_EXT "@CMAKE_SHARED_MODULE_SUFFIX@"
++
++// Define if network support is enabled.
++#cmakedefine NETWORK 1
++
++// Define to disable downsampled decoding.
++#cmakedefine NO_DOWNSAMPLE 1
++
++// Define to disable equalizer.
++#cmakedefine NO_EQUALIZER 1
++
++// Define to disable error messages in combination with a return value (the return is left intact).
++#cmakedefine NO_ERETURN 1
++
++// Define to disable error messages.
++#cmakedefine NO_ERRORMSG 1
++
++// no feeder decoding, no buffered readers
++#cmakedefine NO_FEEDER 1
++
++// Define to disable ICY handling.
++#cmakedefine NO_ICY 1
++
++// Define to disable ID3v2 parsing.
++#cmakedefine NO_ID3V2 1
++
++// Define to disable layer I.
++#cmakedefine NO_LAYER1 1
++
++// Define to disable layer II.
++#cmakedefine NO_LAYER2 1
++
++// Define to disable layer III.
++#cmakedefine NO_LAYER3 1
++
++// Define to disable analyzer info.
++#cmakedefine NO_MOREINFO 1
++
++// Define to disable ntom resampling.
++#cmakedefine NO_NTOM 1
++
++// Define to disable 8 bit integer output.
++#cmakedefine NO_8BIT 1
++
++// Define to disable 16 bit integer output.
++#cmakedefine NO_16BIT 1
++
++// Define to disable 32 bit and 24 bit integer output.
++#cmakedefine NO_32BIT 1
++
++// Define to disable real output.
++#cmakedefine NO_REAL 1
++
++// Define to disable string functions.
++#cmakedefine NO_STRING 1
++
++// Define for post-processed 32 bit formats.
++#cmakedefine NO_SYNTH32 1
++
++// Define to disable warning messages.
++#cmakedefine NO_WARNING 1
++
++#define PACKAGE_NAME "@PROJECT_NAME@"
++#define PACKAGE_VERSION "@PROJECT_VERSION@"
++
++#define PKGLIBDIR "@CMAKE_INSTALL_LIBDIR@/@PROJECT_NAME@"
++
++#define SIZEOF_LONG @SIZEOF_LONG@
++#define SIZEOF_OFF_T @SIZEOF_OFF_T@
++
++#cmakedefine STDERR_FILENO @STDERR_FILENO@
++#cmakedefine STDIN_FILENO @STDIN_FILENO@
++#cmakedefine STDOUT_FILENO @STDOUT_FILENO@
++
++// Define to not duplicate some code for likely cases in libsyn123.
++#cmakedefine SYN123_NO_CASES 1
++
++#cmakedefine USE_MODULES 1
++
++// Define for new Huffman decoding scheme.
++#cmakedefine USE_NEW_HUFFTABLE 1
++
++// Define to use Unicode for Windows
++#cmakedefine WANT_WIN32_UNICODE 1
++
++// Define to use Win32 named pipes
++#cmakedefine WANT_WIN32_FIFO 1
++
++#cmakedefine WORDS_BIGENDIAN 1
++
++// Define to the native offset type (long or actually off_t).
++#define lfs_alias_t @LFS_ALIAS_TYPE@
+diff --git a/ports/cmake/src/libmpg123/CMakeLists.txt b/ports/cmake/src/libmpg123/CMakeLists.txt
+new file mode 100644
+index 0000000..5280efb
+--- /dev/null
++++ b/ports/cmake/src/libmpg123/CMakeLists.txt
+@@ -0,0 +1,168 @@
++cmake_minimum_required(VERSION 3.12)
++
++option(NO_FEATURE_REPORT "Disable feature report function" OFF)
++option(NO_LFS_ALIAS "disable alias wrappers for largefile bitness (mpg123_seek_32 or mpg123_seek_64 in addition to mpg123_seek, or the other way around; It is a mess, do not play with this!)" OFF)
++
++include_directories("${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/")
++
++if(HAVE_STDLIB_H)
++    set(INCLUDE_STDLIB_H "#include <stdlib.h>")
++else()
++    set(INCLUDE_STDLIB_H "/* #include <stdlib.h> is not available on this system */")
++endif()
++if(HAVE_SYS_TYPES_H)
++    set(INCLUDE_SYS_TYPE_H "#include <sys/types.h>")
++else()
++    set(INCLUDE_SYS_TYPE_H "/* #include <sys/types.h> is not available on this system */")
++endif()
++
++configure_file("${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/mpg123.h.in" mpg123.h)
++
++set(TARGET lib${PROJECT_NAME})
++add_library(${TARGET}
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/parse.c"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/frame.c"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/format.c"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/dct64.c"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/equalizer.c"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/id3.c"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/optimize.c"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/readers.c"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/tabinit.c"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/libmpg123.c"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/index.c"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/$<$<NOT:$<BOOL:${NO_ICY}>>:icy.c>"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/$<$<NOT:$<BOOL:${NO_ICY}>>:icy2utf8.c>"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/$<$<NOT:$<BOOL:${NO_LAYER1}>>:layer1.c>"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/$<$<NOT:$<OR:$<BOOL:${NO_LAYER1}>,$<BOOL:${NO_LAYER2}>>>:layer2.c>"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/$<$<NOT:$<BOOL:${NO_LAYER3}>>:layer3.c>"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/$<$<NOT:$<BOOL:${NO_LFS_ALIAS}>>:lfs_alias.c>"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/$<$<NOT:$<BOOL:${NO_NTOM}>>:ntom.c>"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/$<$<NOT:$<BOOL:${NO_8BIT}>>:synth_8bit.c>"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/$<$<NOT:$<BOOL:${NO_16BIT}>>:synth.c>"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/$<$<AND:$<BOOL:${HAVE_FPU}>,$<NOT:$<BOOL:${NO_32BIT}>>>:synth_s32.c>"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/$<$<AND:$<BOOL:${HAVE_FPU}>,$<NOT:$<BOOL:${NO_REAL}>>>:synth_real.c>"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/$<$<NOT:$<BOOL:${NO_STRING}>>:stringbuf.c>"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/$<$<NOT:$<BOOL:${NO_FEATURE_REPORT}>>:feature.c>"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/$<$<BOOL:${LFS_SENSITIVE}>:lfs_wrap.c>"
++    $<TARGET_OBJECTS:compat>)
++
++if((MSVC AND CMAKE_GENERATOR_PLATFORM STREQUAL "x64") OR (NOT MSVC AND CMAKE_SYSTEM_PROCESSOR MATCHES "([xX]86_|AMD|amd)64"))
++    if(HAVE_FPU)
++        set(PLATFORM_DEFINITIONS OPT_MULTI OPT_X86_64 OPT_AVX OPT_GENERIC OPT_GENERIC_DITHER)
++        set(PLATFORM_SOURCES
++            "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/dct36_x86_64.S"
++            "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/dct64_x86_64_float.S"
++            "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/synth_x86_64_float.S"
++            "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/synth_x86_64_s32.S"
++            "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/synth_stereo_x86_64_float.S"
++            "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/synth_stereo_x86_64_s32.S"
++            "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/dct36_avx.S"
++            "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/dct64_avx_float.S"
++            "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/synth_stereo_avx_float.S"
++            "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/synth_stereo_avx_s32.S"
++            "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/getcpuflags_x86_64.S")
++        target_sources(${TARGET} PRIVATE
++            "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/dither.c")
++        if(ACCURATE_ROUNDING)
++            list(APPEND PLATFORM_SOURCES
++                "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/synth_x86_64_accurate.S"
++                "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/synth_stereo_x86_64_accurate.S"
++                "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/synth_stereo_avx_accurate.S")
++        else()
++            list(APPEND PLATFORM_SOURCES
++                "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/dct64_x86_64.S"
++                "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/synth_x86_64.S"
++                "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/synth_stereo_x86_64.S"
++                "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/synth_stereo_avx.S"
++                "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/dct64_avx.S")
++        endif()
++    else()
++        set(PLATFORM_DEFINITIONS OPT_GENERIC)
++    endif()
++elseif((MSVC AND CMAKE_GENERATOR_PLATFORM MATCHES "|Win32") OR (NOT MSVC AND CMAKE_SYSTEM_PROCESSOR MATCHES "i386"))
++    if(TRUE)
++        set(PLATFORM_DEFINITIONS OPT_I386)
++        target_sources(${TARGET} PRIVATE
++            "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/dct64_i386.c")
++    endif()
++
++    cmake_host_system_information(RESULT HAVE_SSE QUERY HAS_SSE)
++    if(HAVE_SSE)
++        set(PLATFORM_DEFINITIONS OPT_SSE)
++        set(PLATFORM_SOURCES
++            "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/tabinit_mmx.S"
++            "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/dct64_sse_float.S"
++            "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/synth_sse_float.S"
++            "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/synth_stereo_sse_float.S"
++            "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/synth_sse_s32.S"
++            "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/synth_stereo_sse_s32.S")
++        if(ACCURATE_ROUNDING)
++            list(APPEND PLATFORM_SOURCES
++                "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/synth_sse_accurate.S"
++                "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/synth_stereo_sse_accurate.S")
++        else()
++            list(APPEND PLATFORM_SOURCES
++                "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/dct64_sse.S"
++                "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/synth_sse.S")
++        endif()
++        target_sources(${TARGET} PRIVATE
++            "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libmpg123/dct64_i386.c")
++    endif()
++endif()
++
++set_target_properties(${TARGET} PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
++
++target_compile_definitions(${TARGET} PRIVATE
++    ${PLATFORM_DEFINITIONS}
++    $<$<BOOL:${HAVE_FPU}>:REAL_IS_FLOAT>
++    $<$<NOT:$<BOOL:${HAVE_FPU}>>:REAL_IS_FIXED>)
++
++if(MSVC)
++    find_program(YASM_ASSEMBLER yasm)
++    if(NOT YASM_ASSEMBLER)
++        message(FATAL_ERROR "Couldn't find yasm assembler. Please set YASM_ASSEMBLER variable")
++    endif()
++    if((MSVC AND CMAKE_GENERATOR_PLATFORM STREQUAL "x64") OR (NOT MSVC AND CMAKE_SYSTEM_PROCESSOR MATCHES "([xX]86_|AMD|amd)64"))
++        set(MACHINE amd64)
++    elseif((MSVC AND CMAKE_GENERATOR_PLATFORM MATCHES "|Win32") OR (NOT MSVC AND CMAKE_SYSTEM_PROCESSOR MATCHES "i386"))
++        set(MACHINE x86)
++    endif()
++    list(TRANSFORM PLATFORM_DEFINITIONS PREPEND /D)
++    foreach(FILE ${PLATFORM_SOURCES})
++        get_filename_component(FILENAME ${FILE} NAME)
++        add_custom_command(
++            OUTPUT ${FILENAME}.asm
++            COMMAND ${CMAKE_C_COMPILER} /DASMALIGN_BALIGN ${PLATFORM_DEFINITIONS}
++            /I"${PROJECT_SOURCE_DIR}/../../src" /I"${PROJECT_BINARY_DIR}/src" /P /Fi${FILENAME}.asm /Tc "${FILE}"
++            DEPENDS ${FILE}
++            WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
++        add_custom_command(
++            OUTPUT ${FILENAME}.o
++            COMMAND ${YASM_ASSEMBLER} -a x86 -m ${MACHINE} -p gas -r raw -f win32 -g null -o ${FILENAME}.o ${FILENAME}.asm
++            DEPENDS ${FILENAME}.asm
++            WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
++        target_sources(${TARGET} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/${FILENAME}.o")
++    endforeach()
++else()
++    target_sources(${TARGET} PRIVATE ${PLATFORM_SOURCES})
++endif()
++
++if(BUILD_SHARED_LIBS)
++    target_compile_definitions(${TARGET}
++        PRIVATE $<$<BOOL:${WIN32}>:BUILD_MPG123_DLL>
++        INTERFACE $<$<BOOL:${WIN32}>:LINK_MPG123_DLL>)
++endif()
++
++target_link_libraries(${TARGET} PRIVATE
++    $<$<BOOL:${HAVE_M}>:m>)
++target_include_directories(${TARGET} INTERFACE
++    "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>"
++    "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
++
++install(TARGETS ${TARGET} EXPORT targets
++    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}/"
++    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}/"
++    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}/")
++install(FILES "${CMAKE_CURRENT_BINARY_DIR}/mpg123.h"
++    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+diff --git a/ports/cmake/src/libout123/CMakeLists.txt b/ports/cmake/src/libout123/CMakeLists.txt
+new file mode 100644
+index 0000000..4f09c35
+--- /dev/null
++++ b/ports/cmake/src/libout123/CMakeLists.txt
+@@ -0,0 +1,36 @@
++cmake_minimum_required(VERSION 3.12)
++
++configure_file("${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libout123/out123.h.in" out123.h)
++
++include_directories("${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libout123/")
++add_subdirectory("modules")
++
++set(TARGET libout123)
++add_library(${TARGET}
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libout123/libout123.c"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libout123/stringlists.c"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libout123/wav.c"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libout123/hextxt.c"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libout123/$<$<NOT:$<BOOL:${NO_BUFFER}>>:buffer.c>"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libout123/$<$<NOT:$<BOOL:${NO_BUFFER}>>:xfermem.c>"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libout123/$<$<BOOL:${USE_MODULES}>:module.c>"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libout123/$<$<NOT:$<BOOL:${USE_MODULES}>>:legacy_module.c>"
++    $<TARGET_OBJECTS:compat>
++    $<$<BOOL:${USE_MODULES}>:$<TARGET_OBJECTS:compat_dl>>)
++
++set_target_properties(${TARGET} PROPERTIES OUTPUT_NAME out123)
++
++target_link_libraries(${TARGET} PRIVATE
++    $<TARGET_NAME_IF_EXISTS:defaultmodule>
++    $<$<BOOL:${HAVE_UNIX_DL}>:dl>)
++
++target_include_directories(${TARGET} INTERFACE
++    "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>"
++    "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
++
++install(TARGETS ${TARGET} EXPORT targets
++    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}/"
++    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}/"
++    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}/")
++install(FILES "${CMAKE_CURRENT_BINARY_DIR}/out123.h"
++    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+diff --git a/ports/cmake/src/libout123/modules/CMakeLists.txt b/ports/cmake/src/libout123/modules/CMakeLists.txt
+new file mode 100644
+index 0000000..43491f8
+--- /dev/null
++++ b/ports/cmake/src/libout123/modules/CMakeLists.txt
+@@ -0,0 +1,53 @@
++if(NOT USE_MODULES)
++    add_library(defaultmodule STATIC
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../../../../src/libout123/modules/$<$<STREQUAL:${DEFAULT_OUTPUT_MODULE},dummy>:dummy.c>"
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../../../../src/libout123/modules/$<$<STREQUAL:${DEFAULT_OUTPUT_MODULE},coreaudio>:coreaudio.c>"
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../../../../src/libout123/modules/$<$<STREQUAL:${DEFAULT_OUTPUT_MODULE},alsa>:alsa.c>"
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../../../../src/libout123/modules/$<$<STREQUAL:${DEFAULT_OUTPUT_MODULE},pulse>:pulse.c>"
++        "${CMAKE_CURRENT_SOURCE_DIR}/../../../../../src/libout123/modules/$<$<STREQUAL:${DEFAULT_OUTPUT_MODULE},win32>:win32.c>")
++    target_link_libraries(defaultmodule PUBLIC
++        $<$<STREQUAL:${DEFAULT_OUTPUT_MODULE},alsa>:ALSA::ALSA>
++        $<$<STREQUAL:${DEFAULT_OUTPUT_MODULE},coreaudio>:${AUDIO_TOOLBOX}>
++        $<$<STREQUAL:${DEFAULT_OUTPUT_MODULE},pulse>:${PULSE_LIBRARIES}>)
++    if(${DEFAULT_OUTPUT_MODULE} STREQUAL "pulse")
++        target_compile_definitions(defaultmodule PRIVATE ${PULSE_CFLAGS})
++    endif()
++else()
++    set(CMAKE_SHARED_MODULE_PREFIX "")
++    list(FIND OUTPUT_MODULES coreaudio INDEX)
++    if(NOT INDEX EQUAL -1)
++        add_library(output_coreaudio MODULE "${CMAKE_CURRENT_SOURCE_DIR}/../../../../../src/libout123/modules/coreaudio.c")
++        target_link_libraries(output_coreaudio PRIVATE ${AUDIO_TOOLBOX})
++        install(TARGETS output_coreaudio
++            ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}"
++            LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}"
++            RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}/${PROJECT_NAME}")
++    endif()
++    list(FIND OUTPUT_MODULES alsa INDEX)
++    if(NOT INDEX EQUAL -1)
++        add_library(output_alsa MODULE "${CMAKE_CURRENT_SOURCE_DIR}/../../../../../src/libout123/modules/alsa.c")
++        target_link_libraries(output_alsa PRIVATE ALSA::ALSA)
++        install(TARGETS output_alsa
++            ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}"
++            LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}"
++            RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}/${PROJECT_NAME}")
++    endif()
++    list(FIND OUTPUT_MODULES pulse INDEX)
++    if(NOT INDEX EQUAL -1)
++        add_library(output_pulse MODULE "${CMAKE_CURRENT_SOURCE_DIR}/../../../../../src/libout123/modules/pulse.c")
++        target_compile_definitions(output_pulse PRIVATE ${PULSE_CFLAGS})
++        target_link_libraries(output_pulse PRIVATE ${PULSE_LIBRARIES})
++        install(TARGETS output_pulse
++            ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}"
++            LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}"
++            RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}/${PROJECT_NAME}")
++    endif()
++    list(FIND OUTPUT_MODULES win32 INDEX)
++    if(NOT INDEX EQUAL -1)
++        add_library(output_win32 MODULE "${CMAKE_CURRENT_SOURCE_DIR}/../../../../../src/libout123/modules/win32.c")
++        install(TARGETS output_win32
++            ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}"
++            LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}"
++            RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}/${PROJECT_NAME}")
++    endif()
++endif()
+diff --git a/ports/cmake/src/libsyn123/CMakeLists.txt b/ports/cmake/src/libsyn123/CMakeLists.txt
+new file mode 100644
+index 0000000..8f4667c
+--- /dev/null
++++ b/ports/cmake/src/libsyn123/CMakeLists.txt
+@@ -0,0 +1,29 @@
++cmake_minimum_required(VERSION 3.12)
++
++configure_file("${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libsyn123/syn123.h.in" syn123.h)
++
++include_directories("${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/libsyn123/")
++
++set(TARGET libsyn123)
++add_library(${TARGET}
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libsyn123/pinknoise.c"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libsyn123/geiger.c"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libsyn123/libsyn123.c"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libsyn123/volume.c"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libsyn123/resample.c"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libsyn123/filter.c"
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/libsyn123/sampleconv.c"
++    $<TARGET_OBJECTS:compat_str>)
++
++set_target_properties(${TARGET} PROPERTIES OUTPUT_NAME syn123)
++
++target_include_directories(${TARGET} INTERFACE
++    "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>"
++    "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
++
++install(TARGETS ${TARGET} EXPORT targets
++    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}/"
++    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}/"
++    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}/")
++install(FILES "${CMAKE_CURRENT_BINARY_DIR}/syn123.h"
++    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+diff --git a/ports/cmake/src/tests/CMakeLists.txt b/ports/cmake/src/tests/CMakeLists.txt
+new file mode 100644
+index 0000000..49159c7
+--- /dev/null
++++ b/ports/cmake/src/tests/CMakeLists.txt
+@@ -0,0 +1,13 @@
++add_executable(seek_whence "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/tests/seek_whence.c")
++target_link_libraries(seek_whence PRIVATE lib${PROJECT_NAME})
++
++add_executable(noise "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/tests/noise.c")
++target_link_libraries(noise PRIVATE lib${PROJECT_NAME})
++
++add_executable(text "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/tests/text.c")
++target_link_libraries(text PRIVATE lib${PROJECT_NAME})
++add_test(NAME text COMMAND text)
++
++add_executable(plain_id3 "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/tests/plain_id3.c")
++target_link_libraries(plain_id3 PRIVATE lib${PROJECT_NAME})
++add_test(NAME plain_id3 COMMAND plain_id3)
