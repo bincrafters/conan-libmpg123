@@ -71,8 +71,6 @@ class LibMPG123Conan(ConanFile):
             self.copy(pattern="*mpg123.h.in", dst="include", src=src_folder)
             self.copy(pattern="*config.h", dst="include", src=os.path.join(self._source_subfolder, "ports", "MSVC++"))
             self.copy(pattern="*mpg123.h", dst="include", src=os.path.join(self._source_subfolder, "ports", "MSVC++"))
-            # self.copy(pattern="*.dll", dst="bin", keep_path=False)
-            # self.copy(pattern="*.lib", dst="lib", keep_path=False)
 
         tools.rmdir(os.path.join(self.package_folder, "share"))
         tools.rmdir(os.path.join(self.package_folder, "lib", "cmake"))
