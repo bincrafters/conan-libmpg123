@@ -2,11 +2,12 @@ diff --git a/ports/cmake/src/libmpg123/CMakeLists.txt b/ports/cmake/src/libmpg12
 index ad69b7a..6e0a80f 100644
 --- a/ports/cmake/src/libmpg123/CMakeLists.txt
 +++ b/ports/cmake/src/libmpg123/CMakeLists.txt
-@@ -128,6 +128,8 @@ if(MSVC)
+@@ -128,6 +128,9 @@ if(MSVC)
      elseif((MSVC AND CMAKE_GENERATOR_PLATFORM MATCHES "|Win32") OR (NOT MSVC AND CMAKE_SYSTEM_PROCESSOR MATCHES "i386"))
          set(MACHINE x86)
      endif()
 +    message(${CMAKE_GENERATOR_PLATFORM})
++    message(${CMAKE_VS_PLATFORM_NAME})
 +    message(${MACHINE})
      list(TRANSFORM PLATFORM_DEFINITIONS PREPEND /D)
      foreach(FILE ${PLATFORM_SOURCES})
