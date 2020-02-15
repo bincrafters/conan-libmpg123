@@ -1,0 +1,97 @@
+diff --git a/ports/cmake/CMakeLists.txt b/ports/cmake/CMakeLists.txt
+index 6d8853c..06015a4 100644
+--- a/ports/cmake/CMakeLists.txt
++++ b/ports/cmake/CMakeLists.txt
+@@ -1,6 +1,6 @@
+ cmake_minimum_required(VERSION 3.12)
+ 
+-project(mpg123 VERSION 1.26.0 LANGUAGES C ASM)
++project(mpg123 VERSION 1.25.13 LANGUAGES C ASM)
+ 
+ include(cmake/search_libs.cmake)
+ include(CMakePackageConfigHelpers)
+@@ -30,17 +30,12 @@ set(exec_prefix "${CMAKE_INSTALL_PREFIX}")
+ set(libdir "${CMAKE_INSTALL_FULL_LIBDIR}")
+ set(includedir "${CMAKE_INSTALL_FULL_INCLUDEDIR}")
+ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/../../libmpg123.pc.in" libmpg123.pc @ONLY)
+-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/../../libout123.pc.in" libout123.pc @ONLY)
+-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/../../libsyn123.pc.in" libsyn123.pc @ONLY)
+ 
+ install(
+     FILES
+         "${CMAKE_CURRENT_BINARY_DIR}/libmpg123.pc"
+-        "${CMAKE_CURRENT_BINARY_DIR}/libout123.pc"
+-        "${CMAKE_CURRENT_BINARY_DIR}/libsyn123.pc"
+     DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
+ install(
+     FILES
+         "${CMAKE_CURRENT_SOURCE_DIR}/../../man1/mpg123.1"
+-        "${CMAKE_CURRENT_SOURCE_DIR}/../../man1/out123.1"
+     DESTINATION "${CMAKE_INSTALL_MANDIR}")
+diff --git a/ports/cmake/src/CMakeLists.txt b/ports/cmake/src/CMakeLists.txt
+index 3005f31..f44a4b0 100644
+--- a/ports/cmake/src/CMakeLists.txt
++++ b/ports/cmake/src/CMakeLists.txt
+@@ -292,11 +292,8 @@ add_compile_options(
+ 
+ add_subdirectory("compat")
+ add_subdirectory("libmpg123")
+-add_subdirectory("libout123")
+-add_subdirectory("libsyn123")
+ 
+ if(UNIX)
+-    add_subdirectory("tests")
+ 
+     add_executable(${PROJECT_NAME}
+         "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/audio.c"
+@@ -317,33 +314,11 @@ if(UNIX)
+     target_link_libraries(${PROJECT_NAME} PRIVATE
+         compat
+         lib${PROJECT_NAME}
+-        libout123
+         ${GETHOSTBYNAME_LIB}
+         ${SOCKET_LIB}
+         $<$<BOOL:${HAVE_M}>:m>)
+ 
+-    add_executable(out123
+-        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/sysutil.c"
+-        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/getlopt.c"
+-        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/out123.c")
+-    target_link_libraries(out123 PRIVATE
+-        lib${PROJECT_NAME}
+-        libout123
+-        libsyn123)
+-
+-    add_executable(${PROJECT_NAME}-id3dump
+-        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/mpg123-id3dump.c"
+-        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/getlopt.c")
+-    target_link_libraries(${PROJECT_NAME}-id3dump  PRIVATE
+-        lib${PROJECT_NAME})
+-
+-    add_executable(${PROJECT_NAME}-strip
+-        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/mpg123-strip.c"
+-        "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/getlopt.c")
+-    target_link_libraries(${PROJECT_NAME}-strip  PRIVATE
+-        lib${PROJECT_NAME})
+-
+-    install(TARGETS ${PROJECT_NAME} out123 ${PROJECT_NAME}-id3dump ${PROJECT_NAME}-strip
++    install(TARGETS ${PROJECT_NAME}
+         EXPORT targets
+         ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}/"
+         LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}/"
+diff --git a/ports/cmake/src/compat/CMakeLists.txt b/ports/cmake/src/compat/CMakeLists.txt
+index f887f43..b6944b3 100644
+--- a/ports/cmake/src/compat/CMakeLists.txt
++++ b/ports/cmake/src/compat/CMakeLists.txt
+@@ -4,10 +4,7 @@ add_library(${TARGET} OBJECT
+     "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/compat/compat_str.c")
+ set_target_properties(${TARGET} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+ 
+-add_library(${TARGET}_dl OBJECT
+-    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/compat/compat_dl.c")
+-set_target_properties(${TARGET}_dl PROPERTIES POSITION_INDEPENDENT_CODE ON)
+ 
+ add_library(${TARGET}_str OBJECT
+     "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/compat/compat_str.c")
+-set_target_properties(${TARGET}_dl PROPERTIES POSITION_INDEPENDENT_CODE ON)
++set_target_properties(${TARGET}_str PROPERTIES POSITION_INDEPENDENT_CODE ON)

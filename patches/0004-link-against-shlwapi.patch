@@ -1,0 +1,21 @@
+diff --git a/ports/cmake/src/libmpg123/CMakeLists.txt b/ports/cmake/src/libmpg123/CMakeLists.txt
+index 5280efb..7b6185b 100644
+--- a/ports/cmake/src/libmpg123/CMakeLists.txt
++++ b/ports/cmake/src/libmpg123/CMakeLists.txt
+@@ -154,8 +154,15 @@ if(BUILD_SHARED_LIBS)
+         INTERFACE $<$<BOOL:${WIN32}>:LINK_MPG123_DLL>)
+ endif()
+ 
++
++set(MSVC_ADDITIONAL_LIBS "")
++if(MSVC)
++  set(MSVC_ADDITIONAL_LIBS shlwapi)
++endif()
++
+ target_link_libraries(${TARGET} PRIVATE
+-    $<$<BOOL:${HAVE_M}>:m>)
++    $<$<BOOL:${HAVE_M}>:m>
++    ${MSVC_ADDITIONAL_LIBS})
+ target_include_directories(${TARGET} INTERFACE
+     "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>"
+     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
