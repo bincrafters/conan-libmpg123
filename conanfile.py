@@ -21,6 +21,7 @@ class LibMPG123Conan(ConanFile):
 
     _source_subfolder = "source_subfolder"
     _build_subfolder = "build_subfolder"
+    _cmake = None
 
     @property
     def _is_msvc(self):
@@ -48,9 +49,14 @@ class LibMPG123Conan(ConanFile):
         os.rename(extracted_dir, self._source_subfolder)
 
     def _configure_cmake(self):
+        if self._cmake:
+            return self._cmake
+        
         cmake = CMake(self)
         cmake.configure(build_folder=self._build_subfolder)
-        return cmake    
+        self._cmake = cmake 
+
+        return self._cmake
 
     def build(self):
         if self.conan_data["patches"][self.version]:
@@ -66,8 +72,7 @@ class LibMPG123Conan(ConanFile):
         cmake.install()
         src_folder = os.path.join(self._source_subfolder, "src", "libmpg123")
         self.copy(pattern="*fmt123.h", dst="include", src=src_folder)
-        # if self._is_msvc:
-        if self.settings.os == "Windows":
+        if self._is_msvc:
             self.copy(pattern="*mpg123.h.in", dst="include", src=src_folder)
             self.copy(pattern="*config.h", dst="include", src=os.path.join(self._source_subfolder, "ports", "MSVC++"))
             self.copy(pattern="*mpg123.h", dst="include", src=os.path.join(self._source_subfolder, "ports", "MSVC++"))
@@ -84,6 +89,6 @@ class LibMPG123Conan(ConanFile):
         if self._is_msvc and self.options.shared:
             self.cpp_info.defines.append("LINK_MPG123_DLL")
         if self.settings.os == "Windows":
-            self.cpp_info.system_libs = ["shlwapi"]
+            self.cpp_info.system_libs.append("shlwapi")
         elif self.settings.os == "Linux":
             self.cpp_info.system_libs.extend(["dl", "m"])
