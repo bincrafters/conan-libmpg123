@@ -6,7 +6,6 @@ import os
 
 class LibMPG123Conan(ConanFile):
     name = "libmpg123"
-    version = "1.25.13"
     description = "mpg123 is the fast and Free (LGPL license) real time MPEG Audio Layer 1, 2 and 3 decoding library and console player"
     topics = ("conan", "mpg123", "libmpg123", "mpeg", "audio", "decoding", "multimedia")
     url = "https://github.com/bincrafters/conan-libmpg123"
@@ -36,7 +35,7 @@ class LibMPG123Conan(ConanFile):
             raise ConanInvalidConfiguration("libmpg123 could not be built by Visual Studio < 14")
 
     def config_options(self):
-        if self.settings.os == 'Windows':
+        if self.settings.os == "Windows":
             del self.options.fPIC
 
     def build_requirements(self):

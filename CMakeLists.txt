@@ -8,10 +8,10 @@ else()
 endif()
 conan_basic_setup()
 
-if(MSVC)
-  add_compile_definitions("strcasecmp=_strcmpi")
-  add_compile_definitions("strncasecmp=_strnicmp")
-endif()
+#if(MSVC)
+#  add_compile_definitions("strcasecmp=_strcmpi")
+#  add_compile_definitions("strncasecmp=_strnicmp")
+#endif()
 
 
 add_subdirectory("source_subfolder/ports/cmake")
