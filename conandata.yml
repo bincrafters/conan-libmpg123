@@ -5,6 +5,9 @@ sources:
   "1.26.1":
     url: "https://downloads.sourceforge.net/project/mpg123/mpg123/1.26.1/mpg123-1.26.1.tar.bz2"
     sha256: "74d6629ab7f3dd9a588b0931528ba7ecfa989a2cad6bf53ffeef9de31b0fe032"
+  "1.26.2":
+    url: "https://downloads.sourceforge.net/project/mpg123/mpg123/1.26.2/mpg123-1.26.2.tar.bz2"
+    sha256: "00f7bf7ea64fcec2c9d07751d6ad8849343ee09c282ea3b0d5dd486e886e2ff3"
 patches:
   "1.25.13":
     - base_path: "source_subfolder"
@@ -19,8 +22,5 @@ patches:
       patch_file: "patches/0005-test.patch"
     - base_path: "source_subfolder"
       patch_file: "patches/0006-fix_mpg123_h_generation.patch"
-    - base_path: "source_subfolder"
-      patch_file: "patches/0007-fix_x86_build.patch"
-  "1.26.1":
     - base_path: "source_subfolder"
       patch_file: "patches/0007-fix_x86_build.patch"

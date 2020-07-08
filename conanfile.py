@@ -54,10 +54,8 @@ class LibMPG123Conan(ConanFile):
         return self._cmake
 
     def build(self):
-        if self.conan_data["patches"][self.version]:
-            for patch in self.conan_data["patches"][self.version]:
-                tools.patch(**patch)
-
+        for patch in self.conan_data.get("patches", {}).get(self.version, []):
+            tools.patch(**patch)
         cmake = self._configure_cmake()
         cmake.build()
 
