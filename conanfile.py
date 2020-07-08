@@ -39,8 +39,7 @@ class LibMPG123Conan(ConanFile):
             del self.options.fPIC
 
     def build_requirements(self):
-        if not tools.which("yasm"):
-            self.build_requires("yasm/1.3.0")
+        self.build_requires("yasm/1.3.0")
 
     def source(self):
         tools.get(**self.conan_data["sources"][self.version])
