@@ -13,6 +13,7 @@ class LibMPG123Conan(ConanFile):
     license = "LGPL-2.0-only"
     exports_sources = ["CMakeLists.txt", "patches/*"]
     generators = "cmake"
+    short_paths = True
 
     settings = "os", "arch", "compiler", "build_type"
     options = {"shared": [True, False], "fPIC": [True, False]}
