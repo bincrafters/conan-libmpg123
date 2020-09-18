@@ -14,4 +14,6 @@ conan_basic_setup()
 #endif()
 
 
+message(STATUS "CMAKE_GENERATOR_PLATFORM: ${CMAKE_GENERATOR_PLATFORM}")
+message(STATUS "CMAKE_VERSION: ${CMAKE_VERSION}")
 add_subdirectory("source_subfolder/ports/cmake")
