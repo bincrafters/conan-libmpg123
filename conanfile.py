@@ -41,6 +41,7 @@ class LibMPG123Conan(ConanFile):
 
     def build_requirements(self):
         self.build_requires("yasm/1.3.0")
+        self.build_requires("cmake/3.18.2")
 
     def source(self):
         tools.get(**self.conan_data["sources"][self.version])
